@@ -4,37 +4,76 @@ using UnityEngine;
 
 public class Character2D : MonoBehaviour
 {
-    
-    Animator anim;
-    SpriteRenderer spr;
+    [SerializeField, Range(0.1f, 10f)]
+    float moveSpeed = 1f;
 
-    [SerializeField, Range(0.1f,20f)]
-    float moveSpeed = 2f;
+    SpriteRenderer spr;
+    Animator anim;
+    [SerializeField, Range(0.1f, 15f)]
+    float jumpForce;
+    Rigidbody2D rb2D;
+
+    [SerializeField]
+    Color rayColor = Color.magenta;
+    [SerializeField, Range(0.1f, 15f)]
+    float rayDistance = 5f;
+    [SerializeField]
+    LayerMask groundLayer;
 
     void Awake()
     {
-        anim = GetComponent<Animator>();
         spr = GetComponent<SpriteRenderer>();
+        anim = GetComponent<Animator>();
+        rb2D = GetComponent<Rigidbody2D>();
     }
 
     void Update()
     {
-        transform.Translate(Vector2.right * Axis.x * moveSpeed * Time.deltaTime);
-        spr.flipX = Flip;
+        transform.Translate(Vector2.right * axis.x * moveSpeed * Time.deltaTime);
+        if(jumpButton && IsGrounding)
+        {
+            anim.SetTrigger("jump");
+            rb2D.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+        }
     }
 
-    void LateUpdate(){
-        anim.SetFloat("moveX", Mathf.Abs(Axis.x));
-    }
-
-    Vector2 Axis
+    void LateUpdate() 
     {
-        get => new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+        spr.flipX = flipSprite;
+        anim.SetFloat("moveX", Mathf.Abs(axis.x));
     }
 
-    bool Flip
+    //para cosas de fisica
+    void FixedUpdate() 
     {
-        get => Axis.x > 0f ? false : Axis.x < 0f ? true : spr.flipX;
+       //Debug.Log(rb2D.velocity.normalized.y);
+       anim.SetFloat("velocityY",rb2D.velocity.normalized.y);
+       anim.SetBool("ground", IsGrounding);
     }
 
+    Vector2 axis => new Vector2(Input.GetAxis("Horizontal"),  Input.GetAxis("Vertical"));
+
+    bool flipSprite => axis.x > 0 ? false : axis.x < 0 ? true : spr.flipX;
+
+    bool jumpButton => Input.GetButtonDown("Jump");
+
+    bool IsGrounding => Physics2D.Raycast(transform.position, Vector2.down, rayDistance, groundLayer); 
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = rayColor;
+        Gizmos.DrawRay(transform.position, Vector2.down * rayDistance);    
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if(other.CompareTag("coin"))
+        {
+            coin coin = other.GetComponent<coin>();
+            Destroy(other.gameObject);
+            Debug.Log(coin.Points);
+
+            
+        }
+    }
 }
